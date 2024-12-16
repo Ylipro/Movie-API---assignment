@@ -127,3 +127,51 @@ app.post('/movie_genre', async (req, res) => {
         res.status(400).json({ error: error.message })
     }
 });
+
+//Adding movie review with userid, movieid,stars0-5 and text
+app.post('/review', async (req, res) => {
+
+    const { userid, movieid, stars, text } = req.body;
+
+    try {
+        await pgPool.query('INSERT INTO review (movie_user,movie,rating,review_text) VALUES ($1,$2,$3,$4)', [userid, movieid, stars, text]);
+        res.end();
+    } catch (error) {
+        res.status(400).json({ error: error.message })
+    }
+});
+
+
+//Adding favorite movies for user
+app.post('/favorite', async (req, res) => {
+
+    const { userid, movieid } = req.body;
+
+    try {
+        await pgPool.query('INSERT INTO favorite (movie_user,movie) VALUES ($1,$2)', [userid, movieid]);
+        res.end();
+    } catch (error) {
+        res.status(400).json({ error: error.message })
+    }
+});
+
+//getting favorite movies by username
+app.get('/favorite/:movie_user', async (req, res) => {
+    const username = req.params.movie_user;
+
+    try {
+        if (!username) {
+            return res.status(400).json({ error: "Username is required." });
+        }
+        const result = await pgPool.query(
+            'SELECT movie.id, movie.title FROM movie INNER JOIN favorite ON movie.id=favorite.movie INNER JOIN movie_user ON favorite.movie_user=movie_user.id WHERE movie_user.username = $1', [username]);
+        if (result.rowCount === 0) {
+            return res.status(404).json({ error: `No favorite movies found for username: ${username}` });
+        }
+
+        res.json({ username, favoriteMovies: result.rows });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+
+});
