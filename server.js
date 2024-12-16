@@ -38,6 +38,48 @@ app.get('/movie', async (req, res) => {
         res.status(400).json({error: error.message})
     }
 });
+//adding new movies with movie name, year and genre id number
+app.post('/movie', async (req,res) =>{
+    const { name,year,genre } = req.body;
+    try {
+        await pgPool.query(
+            'INSERT INTO movie (title, release_date, genre) VALUES ($1,$2,$3)',[name,year,genre]);
+        res.end();
+    } catch (error) {
+        res.status(400).json({error: error.message})
+    }
+});
+// getting movie by id
+app.get('/movie/:id?', async (req,res) =>{
+    
+    let id = req.params.id;
+
+    try {
+        
+        let result;
+        
+        if(!id){
+            return res.status(400).json({ error: "Movie ID is required." });
+        }else{
+            result = await pgPool.query(
+                'SELECT movie.id, movie.title, movie.release_date releaseDate, movie_genre.genre_name genre FROM movie INNER JOIN movie_genre ON movie_genre.id=movie.genre WHERE movie.id = $1', [id])
+        }
+        res.json(result.rows);
+    } catch (error) {
+        res.status(400).json({error: error.message})
+    }
+})
+
+
+
+
+
+
+
+
+
+
+
 
 //registering user with: username, fullname, password and year of birth
 app.post('/user', async (req,res) =>{
@@ -52,6 +94,19 @@ app.post('/user', async (req,res) =>{
         res.status(400).json({error: error.message})
     }
 });
+
+
+
+//Getting all genres
+app.get('/movie_genre', async (req,res) =>{
+ try {
+    const result = await pgPool.query('SELECT * FROM movie_genre');
+    res.json(result.rows);
+ } catch (error) {
+    res.status(400).json({error: error.message})
+ }
+});
+
 //Adding new movie genres
 app.post('/movie_genre', async (req,res) =>{
 
