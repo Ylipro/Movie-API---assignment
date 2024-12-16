@@ -4,7 +4,7 @@ import { pgPool } from "./pg_connection.js"
 
 dotenv.config()
 const app = express()
-app.use(express.urlencoded({extended: true}));
+app.use(express.urlencoded({ extended: true }));
 
 const port = process.env.PORT || 3001;
 
@@ -22,67 +22,75 @@ app.get('/movie', async (req, res) => {
     let keyword = req.query.keyword;
 
     try {
-        
+
         let result;
-        
-        if(!keyword){
-            result= await pgPool.query('SELECT movie.title, movie.release_date releaseDate, movie_genre.genre_name genre FROM movie INNER JOIN movie_genre ON movie_genre.id=movie.genre');
-        }else{
+
+        if (!keyword) {
+            result = await pgPool.query('SELECT movie.title, movie.release_date releaseDate, movie_genre.genre_name genre FROM movie INNER JOIN movie_genre ON movie_genre.id=movie.genre');
+        } else {
             keyword = keyword.toLowerCase();
-            keyword = '%'+keyword+'%';
+            keyword = '%' + keyword + '%';
             result = await pgPool.query(
                 'SELECT movie.title, movie.release_date releaseDate, movie_genre.genre_name genre FROM movie INNER JOIN movie_genre ON movie_genre.id=movie.genre WHERE LOWER(movie.title) LIKE $1', [keyword])
         }
         res.json(result.rows);
     } catch (error) {
-        res.status(400).json({error: error.message})
+        res.status(400).json({ error: error.message })
     }
 });
 //adding new movies with movie name, year and genre id number
-app.post('/movie', async (req,res) =>{
-    const { name,year,genre } = req.body;
+app.post('/movie', async (req, res) => {
+    const { name, year, genre } = req.body;
     try {
         await pgPool.query(
-            'INSERT INTO movie (title, release_date, genre) VALUES ($1,$2,$3)',[name,year,genre]);
+            'INSERT INTO movie (title, release_date, genre) VALUES ($1,$2,$3)', [name, year, genre]);
         res.end();
     } catch (error) {
-        res.status(400).json({error: error.message})
+        res.status(400).json({ error: error.message })
     }
 });
 // getting movie by id
-app.get('/movie/:id?', async (req,res) =>{
-    
+app.get('/movie/:id', async (req, res) => {
+
     let id = req.params.id;
 
     try {
-        
+
         let result;
-        
-        if(!id){
+
+        if (!id) {
             return res.status(400).json({ error: "Movie ID is required." });
-        }else{
+        } else {
             result = await pgPool.query(
                 'SELECT movie.id, movie.title, movie.release_date releaseDate, movie_genre.genre_name genre FROM movie INNER JOIN movie_genre ON movie_genre.id=movie.genre WHERE movie.id = $1', [id])
         }
         res.json(result.rows);
     } catch (error) {
-        res.status(400).json({error: error.message})
+        res.status(400).json({ error: error.message })
     }
 })
+//removing movie by id
+app.delete('/movie/:id', async (req, res) => {
+    const id = req.params.id;
+    try {
+        if (!id) {
+            return res.status(400).json({ error: "Movie ID is required." });
+        }
+        const result = await pgPool.query('DELETE FROM movie WHERE id = $1 RETURNING *', [id]);
 
+        if (result.rowCount === 0) {
+            return res.status(404).json({ error: `No movie found with ID: ${id}` });
+        }
 
+        res.json({ message: `Movie with ID ${id} deleted successfully.`, movie: result.rows[0] });
+    } catch (error) {
+        res.status(400).json({ error: error.message })
+    }
 
-
-
-
-
-
-
-
-
+});
 
 //registering user with: username, fullname, password and year of birth
-app.post('/user', async (req,res) =>{
+app.post('/user', async (req, res) => {
 
     const { username, name, password, bday } = req.body;
 
@@ -91,31 +99,31 @@ app.post('/user', async (req,res) =>{
             'INSERT INTO movie_user (username, fullname, user_password, birth_date) VALUES ($1,$2,$3,$4)', [username, name, password, bday]);
         res.end();
     } catch (error) {
-        res.status(400).json({error: error.message})
+        res.status(400).json({ error: error.message })
     }
 });
 
 
 
 //Getting all genres
-app.get('/movie_genre', async (req,res) =>{
- try {
-    const result = await pgPool.query('SELECT * FROM movie_genre');
-    res.json(result.rows);
- } catch (error) {
-    res.status(400).json({error: error.message})
- }
+app.get('/movie_genre', async (req, res) => {
+    try {
+        const result = await pgPool.query('SELECT * FROM movie_genre');
+        res.json(result.rows);
+    } catch (error) {
+        res.status(400).json({ error: error.message })
+    }
 });
 
 //Adding new movie genres
-app.post('/movie_genre', async (req,res) =>{
+app.post('/movie_genre', async (req, res) => {
 
-    const {genre} = req.body;
+    const { genre } = req.body;
 
     try {
-        await pgPool.query('INSERT INTO movie_genre(genre_name) VALUES ($1)',[genre]);
+        await pgPool.query('INSERT INTO movie_genre(genre_name) VALUES ($1)', [genre]);
         res.end();
     } catch (error) {
-        res.status(400).json({error: error.message})
+        res.status(400).json({ error: error.message })
     }
 });
